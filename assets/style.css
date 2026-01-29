@@ -128,6 +128,11 @@ h1 {
   font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
 }
 
+.code-grid {
+  display: grid;
+  gap: 16px;
+}
+
 button {
   border: none;
   border-radius: 10px;
