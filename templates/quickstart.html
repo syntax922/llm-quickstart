@@ -66,13 +66,28 @@
     </section>
 
     <section class="card">
+      <h2>Set up your CLI variables</h2>
+      <p>
+        Define a base URL, the cookie file location, and a model ID from the <code>/v1/models</code> response.
+      </p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="cli-vars">Copy</button>
+      </div>
+      <pre class="code-block"><code id="cli-vars">export BASE_URL="{{.BaseURL}}"
+export COOKIE_FILE="cookies.txt"
+export MODEL_ID="&lt;MODEL_ID_FROM_V1_MODELS&gt;"</code></pre>
+      <p class="hint">Replace <code>&lt;MODEL_ID_FROM_V1_MODELS&gt;</code> with the first model ID returned by <code>/v1/models</code>.</p>
+    </section>
+
+    <section class="card">
       <h2>Test: list models</h2>
       <p>Save the cookie jar snippet above to <code>cookies.txt</code>, then call the models endpoint.</p>
       <div class="code-header">
         <span>bash</span>
         <button class="copy-button" data-copy-target="models-curl">Copy</button>
       </div>
-      <pre class="code-block"><code id="models-curl">curl -b cookies.txt {{.BaseURL}}/v1/models</code></pre>
+      <pre class="code-block"><code id="models-curl">curl -b "$COOKIE_FILE" "$BASE_URL/v1/models"</code></pre>
       <div class="code-header">
         <span>sample output</span>
         <button class="copy-button" data-copy-target="models-output">Copy</button>
@@ -95,10 +110,10 @@
         <span>bash</span>
         <button class="copy-button" data-copy-target="chat-nonstream">Copy</button>
       </div>
-      <pre class="code-block"><code id="chat-nonstream">curl -b cookies.txt \
+      <pre class="code-block"><code id="chat-nonstream">curl -b "$COOKIE_FILE" \
   -H "Content-Type: application/json" \
-  -d '{"model":"&lt;MODEL_ID&gt;","stream":false,"messages":[{"role":"user","content":"Hello from quickstart"}]}' \
-  {{.BaseURL}}/v1/chat/completions</code></pre>
+  -d "{\"model\":\"$MODEL_ID\",\"stream\":false,\"messages\":[{\"role\":\"user\",\"content\":\"Hello from quickstart\"}]}" \
+  "$BASE_URL/v1/chat/completions"</code></pre>
       <div class="code-header">
         <span>sample response</span>
         <button class="copy-button" data-copy-target="chat-nonstream-output">Copy</button>
@@ -123,10 +138,10 @@
         <span>bash</span>
         <button class="copy-button" data-copy-target="chat-stream">Copy</button>
       </div>
-      <pre class="code-block"><code id="chat-stream">curl -N -b cookies.txt \
+      <pre class="code-block"><code id="chat-stream">curl -N -b "$COOKIE_FILE" \
   -H "Content-Type: application/json" \
-  -d '{"model":"&lt;MODEL_ID&gt;","stream":true,"messages":[{"role":"user","content":"Hello from streaming"}]}' \
-  {{.BaseURL}}/v1/chat/completions</code></pre>
+  -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello from streaming\"}]}" \
+  "$BASE_URL/v1/chat/completions"</code></pre>
       <p class="hint">Tip: you should see tokens arrive quickly after the request starts.</p>
     </section>
 
@@ -169,7 +184,7 @@ gcloud auth print-identity-token \
       <pre class="code-block"><code id="gcloud-bearer">TOKEN=$(gcloud auth print-identity-token --audiences="{{.OauthAudience}}")
 
 curl -H "Authorization: Bearer $TOKEN" \
-  {{.BaseURL}}/v1/models</code></pre>
+  "$BASE_URL/v1/models"</code></pre>
       <div class="code-header">
         <span>bash</span>
         <button class="copy-button" data-copy-target="gcloud-stream">Copy</button>
@@ -178,8 +193,8 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 curl -N -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"model":"&lt;MODEL_ID&gt;","stream":true,"messages":[{"role":"user","content":"Hello"}]}' \
-  {{.BaseURL}}/v1/chat/completions</code></pre>
+  -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}" \
+  "$BASE_URL/v1/chat/completions"</code></pre>
     </section>
 
     <section class="card">

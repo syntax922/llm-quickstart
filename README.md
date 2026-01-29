@@ -9,6 +9,7 @@ cookie value server-side (without client-side cookie access).
 - Copy buttons for cookies and curl examples.
 - Strict no-cache headers on every response.
 - Assets embedded into the Go binary (no external dependencies).
+- JSON helper endpoint at `/quickstart/api/session` for server-rendered session metadata.
 
 ## Local development
 

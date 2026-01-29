@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -30,11 +31,20 @@ type pageData struct {
 	OauthAudience    string
 }
 
+type sessionResponse struct {
+	BaseURL          string `json:"baseUrl"`
+	CookieName       string `json:"cookieName"`
+	CookieValue      string `json:"cookieValue,omitempty"`
+	CookieJarSnippet string `json:"cookieJarSnippet"`
+	CookiePresent    bool   `json:"cookiePresent"`
+}
+
 func main() {
 	tmpl := template.Must(template.New("quickstart").Parse(quickstartTemplate))
 
 	mux := http.NewServeMux()
 	mux.Handle("/static/", noCache(http.StripPrefix("/static/", http.FileServer(http.FS(assetsFS)))))
+	mux.Handle("/quickstart/api/session", noCache(http.HandlerFunc(handleSession)))
 	mux.Handle("/quickstart", noCache(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleQuickstart(w, r, tmpl)
 	})))
@@ -54,9 +64,35 @@ func main() {
 }
 
 func handleQuickstart(w http.ResponseWriter, r *http.Request, tmpl *template.Template) {
+	data := buildPageData(r)
+
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, "Failed to render page", http.StatusInternalServerError)
+	}
+}
+
+func handleSession(w http.ResponseWriter, r *http.Request) {
+	data := buildPageData(r)
+
+	response := sessionResponse{
+		BaseURL:          data.BaseURL,
+		CookieName:       data.CookieName,
+		CookieValue:      data.CookieValue,
+		CookieJarSnippet: data.CookieJarSnippet,
+		CookiePresent:    data.CookiePresent,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(response); err != nil {
+		http.Error(w, "Failed to render session", http.StatusInternalServerError)
+	}
+}
+
+func buildPageData(r *http.Request) pageData {
 	cookieValue := ""
-	cookie, err := r.Cookie(cookieName)
-	if err == nil {
+	if cookie, err := r.Cookie(cookieName); err == nil {
 		cookieValue = cookie.Value
 	}
 
@@ -79,9 +115,7 @@ func handleQuickstart(w http.ResponseWriter, r *http.Request, tmpl *template.Tem
 		data.CookieJarSnippet = "# Cookie missing. Visit /oauth2/sign_in to authenticate."
 	}
 
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "Failed to render page", http.StatusInternalServerError)
-	}
+	return data
 }
 
 func noCache(next http.Handler) http.Handler {
