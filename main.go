@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 )
@@ -42,8 +43,13 @@ type sessionResponse struct {
 func main() {
 	tmpl := template.Must(template.New("quickstart").Parse(quickstartTemplate))
 
+	assetsSub, err := fs.Sub(assetsFS, "assets")
+	if err != nil {
+		log.Fatalf("asset mount error: %v", err)
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle("/quickstart/static/", noCache(http.StripPrefix("/quickstart/static/", http.FileServer(http.FS(assetsFS)))))
+	mux.Handle("/quickstart/static/", noCache(http.StripPrefix("/quickstart/static/", http.FileServer(http.FS(assetsSub)))))
 	mux.Handle("/quickstart/api/session", noCache(http.HandlerFunc(handleSession)))
 	mux.Handle("/quickstart", noCache(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleQuickstart(w, r, tmpl)
