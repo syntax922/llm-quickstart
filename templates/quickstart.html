@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LM Studio Gateway Quickstart</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">LM Studio Gateway</p>
+        <h1>Quickstart</h1>
+        <p class="subtitle">
+          Authenticate with Google OAuth, copy your session cookie, and start calling the LM Studio REST API in minutes.
+        </p>
+      </div>
+      <a class="docs-link" href="https://lmstudio.ai/docs/developer/rest" target="_blank" rel="noreferrer">
+        More docs →
+      </a>
+    </header>
+
+    <section class="card">
+      <h2>Overview</h2>
+      <p>
+        This gateway is protected by OAuth. You must be on the allowlist to access the API. The session cookie grants
+        access to the gateway — treat it like a password and never share it publicly.
+      </p>
+      <div class="callout warning">
+        <strong>Security:</strong> The session cookie enables access to your account. Store it securely and rotate if
+        you suspect exposure.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Get your cookie</h2>
+      {{if .CookiePresent}}
+      <p>
+        Your <code>{{.CookieName}}</code> cookie was detected. Keep it secret and use the copy buttons below to paste
+        into a cookies.txt file or your curl commands.
+      </p>
+      <div class="cookie-panel">
+        <label for="cookie-value">Session cookie</label>
+        <div class="cookie-controls">
+          <input id="cookie-value" type="password" value="{{.CookieValue}}" readonly />
+          <button class="secondary" data-action="reveal" data-target="cookie-value">Reveal</button>
+          <button class="primary" data-action="copy-input" data-target="cookie-value">Copy</button>
+        </div>
+      </div>
+      <div class="code-grid">
+        <div>
+          <div class="code-header">
+            <span>Netscape cookie jar (cookies.txt)</span>
+            <button class="copy-button" data-copy-target="cookie-jar">Copy</button>
+          </div>
+          <pre class="code-block"><code id="cookie-jar">{{.CookieJarSnippet}}</code></pre>
+        </div>
+      </div>
+      {{else}}
+      <div class="callout danger">
+        <strong>No cookie detected.</strong> Visit <code>{{.BaseURL}}/oauth2/sign_in</code> to authenticate, then
+        reload this page.
+      </div>
+      {{end}}
+    </section>
+
+    <section class="card">
+      <h2>Test: list models</h2>
+      <p>Save the cookie jar snippet above to <code>cookies.txt</code>, then call the models endpoint.</p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="models-curl">Copy</button>
+      </div>
+      <pre class="code-block"><code id="models-curl">curl -b cookies.txt {{.BaseURL}}/v1/models</code></pre>
+      <div class="code-header">
+        <span>sample output</span>
+        <button class="copy-button" data-copy-target="models-output">Copy</button>
+      </div>
+      <pre class="code-block"><code id="models-output">{
+  "data": [
+    {
+      "id": "lmstudio-community/llama-3.1-8b-instruct",
+      "object": "model"
+    }
+  ],
+  "object": "list"
+}</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Test: non-stream chat completion</h2>
+      <p>Send a standard chat completion request with streaming disabled.</p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="chat-nonstream">Copy</button>
+      </div>
+      <pre class="code-block"><code id="chat-nonstream">curl -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"model":"&lt;MODEL_ID&gt;","stream":false,"messages":[{"role":"user","content":"Hello from quickstart"}]}' \
+  {{.BaseURL}}/v1/chat/completions</code></pre>
+      <div class="code-header">
+        <span>sample response</span>
+        <button class="copy-button" data-copy-target="chat-nonstream-output">Copy</button>
+      </div>
+      <pre class="code-block"><code id="chat-nonstream-output">{
+  "id": "chatcmpl-...",
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "message": {"role": "assistant", "content": "Hello!"},
+      "finish_reason": "stop"
+    }
+  ]
+}</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Test: streaming chat completion (SSE)</h2>
+      <p>Stream tokens in real time using Server-Sent Events.</p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="chat-stream">Copy</button>
+      </div>
+      <pre class="code-block"><code id="chat-stream">curl -N -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"model":"&lt;MODEL_ID&gt;","stream":true,"messages":[{"role":"user","content":"Hello from streaming"}]}' \
+  {{.BaseURL}}/v1/chat/completions</code></pre>
+      <p class="hint">Tip: you should see tokens arrive quickly after the request starts.</p>
+    </section>
+
+    <section class="card">
+      <h2>Use with the OpenAI SDK (Python)</h2>
+      <div class="code-header">
+        <span>python</span>
+        <button class="copy-button" data-copy-target="openai-python">Copy</button>
+      </div>
+      <pre class="code-block"><code id="openai-python">from openai import OpenAI
+
+client = OpenAI(base_url="{{.BaseURL}}/v1", api_key="unused")
+
+response = client.chat.completions.create(
+    model="&lt;MODEL_ID&gt;",
+    messages=[{"role": "user", "content": "Hello from Python"}],
+)
+print(response.choices[0].message.content)</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Use a Google identity token (Bearer)</h2>
+      <p>
+        OAuth2-proxy can accept a Google identity token. Use the same audience as the OAuth client ID and pass the
+        token as a Bearer header.
+      </p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="gcloud-login">Copy</button>
+      </div>
+      <pre class="code-block"><code id="gcloud-login">gcloud auth login
+
+gcloud auth print-identity-token \
+  --audiences="{{.OauthAudience}}" \
+  --include-email</code></pre>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="gcloud-bearer">Copy</button>
+      </div>
+      <pre class="code-block"><code id="gcloud-bearer">TOKEN=$(gcloud auth print-identity-token --audiences="{{.OauthAudience}}")
+
+curl -H "Authorization: Bearer $TOKEN" \
+  {{.BaseURL}}/v1/models</code></pre>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="gcloud-stream">Copy</button>
+      </div>
+      <pre class="code-block"><code id="gcloud-stream">TOKEN=$(gcloud auth print-identity-token --audiences="{{.OauthAudience}}")
+
+curl -N -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"&lt;MODEL_ID&gt;","stream":true,"messages":[{"role":"user","content":"Hello"}]}' \
+  {{.BaseURL}}/v1/chat/completions</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>Troubleshooting</h2>
+      <ul>
+        <li><strong>401/403:</strong> Your account is not on the allowlist or your cookie has expired. Re-authenticate.</li>
+        <li><strong>302 redirect:</strong> You are not logged in. Visit <code>{{.BaseURL}}/oauth2/sign_in</code>.</li>
+        <li><strong>Model not found:</strong> Run <code>/v1/models</code> and paste a valid model ID.</li>
+        <li><strong>Streaming stalls:</strong> Verify <code>stream=true</code> and that your client supports SSE.</li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      <span>Need more?</span>
+      <a href="https://lmstudio.ai/docs/developer/rest" target="_blank" rel="noreferrer">
+        LM Studio REST docs
+      </a>
+    </footer>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
