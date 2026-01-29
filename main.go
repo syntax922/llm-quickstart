@@ -43,7 +43,7 @@ func main() {
 	tmpl := template.Must(template.New("quickstart").Parse(quickstartTemplate))
 
 	mux := http.NewServeMux()
-	mux.Handle("/static/", noCache(http.StripPrefix("/static/", http.FileServer(http.FS(assetsFS)))))
+	mux.Handle("/quickstart/static/", noCache(http.StripPrefix("/quickstart/static/", http.FileServer(http.FS(assetsFS)))))
 	mux.Handle("/quickstart/api/session", noCache(http.HandlerFunc(handleSession)))
 	mux.Handle("/quickstart", noCache(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleQuickstart(w, r, tmpl)

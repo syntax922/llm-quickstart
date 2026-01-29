@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LM Studio Gateway Quickstart</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/quickstart/static/style.css" />
 </head>
 <body>
   <div class="page">
@@ -21,7 +21,22 @@
       </a>
     </header>
 
-    <section class="card">
+    <div class="layout">
+      <nav class="toc">
+        <p class="toc-title">On this page</p>
+        <a href="#overview">Overview</a>
+        <a href="#cookie">Get your cookie</a>
+        <a href="#cli-vars">CLI variables</a>
+        <a href="#models">List models</a>
+        <a href="#chat">Non-stream chat</a>
+        <a href="#stream">Streaming chat (SSE)</a>
+        <a href="#openai">OpenAI SDK (Python)</a>
+        <a href="#bearer">Bearer token auth</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+      </nav>
+
+      <main class="content">
+        <section class="card" id="overview">
       <h2>Overview</h2>
       <p>
         This gateway is protected by OAuth. You must be on the allowlist to access the API. The session cookie grants
@@ -31,9 +46,9 @@
         <strong>Security:</strong> The session cookie enables access to your account. Store it securely and rotate if
         you suspect exposure.
       </div>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="cookie">
       <h2>Get your cookie</h2>
       {{if .CookiePresent}}
       <p>
@@ -63,9 +78,9 @@
         reload this page.
       </div>
       {{end}}
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="cli-vars">
       <h2>Set up your CLI variables</h2>
       <p>
         Define a base URL, the cookie file location, and a model ID from the <code>/v1/models</code> response.
@@ -78,9 +93,9 @@
 export COOKIE_FILE="cookies.txt"
 export MODEL_ID="&lt;MODEL_ID_FROM_V1_MODELS&gt;"</code></pre>
       <p class="hint">Replace <code>&lt;MODEL_ID_FROM_V1_MODELS&gt;</code> with the first model ID returned by <code>/v1/models</code>.</p>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="models">
       <h2>Test: list models</h2>
       <p>Save the cookie jar snippet above to <code>cookies.txt</code>, then call the models endpoint.</p>
       <div class="code-header">
@@ -101,9 +116,9 @@ export MODEL_ID="&lt;MODEL_ID_FROM_V1_MODELS&gt;"</code></pre>
   ],
   "object": "list"
 }</code></pre>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="chat">
       <h2>Test: non-stream chat completion</h2>
       <p>Send a standard chat completion request with streaming disabled.</p>
       <div class="code-header">
@@ -129,9 +144,9 @@ export MODEL_ID="&lt;MODEL_ID_FROM_V1_MODELS&gt;"</code></pre>
     }
   ]
 }</code></pre>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="stream">
       <h2>Test: streaming chat completion (SSE)</h2>
       <p>Stream tokens in real time using Server-Sent Events.</p>
       <div class="code-header">
@@ -143,9 +158,9 @@ export MODEL_ID="&lt;MODEL_ID_FROM_V1_MODELS&gt;"</code></pre>
   -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello from streaming\"}]}" \
   "$BASE_URL/v1/chat/completions"</code></pre>
       <p class="hint">Tip: you should see tokens arrive quickly after the request starts.</p>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="openai">
       <h2>Use with the OpenAI SDK (Python)</h2>
       <div class="code-header">
         <span>python</span>
@@ -160,9 +175,9 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Hello from Python"}],
 )
 print(response.choices[0].message.content)</code></pre>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="bearer">
       <h2>Use a Google identity token (Bearer)</h2>
       <p>
         OAuth2-proxy can accept a Google identity token. Use the same audience as the OAuth client ID and pass the
@@ -195,9 +210,9 @@ curl -N -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}" \
   "$BASE_URL/v1/chat/completions"</code></pre>
-    </section>
+        </section>
 
-    <section class="card">
+        <section class="card" id="troubleshooting">
       <h2>Troubleshooting</h2>
       <ul>
         <li><strong>401/403:</strong> Your account is not on the allowlist or your cookie has expired. Re-authenticate.</li>
@@ -205,7 +220,9 @@ curl -N -H "Authorization: Bearer $TOKEN" \
         <li><strong>Model not found:</strong> Run <code>/v1/models</code> and paste a valid model ID.</li>
         <li><strong>Streaming stalls:</strong> Verify <code>stream=true</code> and that your client supports SSE.</li>
       </ul>
-    </section>
+        </section>
+      </main>
+    </div>
 
     <footer class="footer">
       <span>Need more?</span>
@@ -214,6 +231,6 @@ curl -N -H "Authorization: Bearer $TOKEN" \
       </a>
     </footer>
   </div>
-  <script src="/static/app.js"></script>
+  <script src="/quickstart/static/app.js"></script>
 </body>
 </html>
