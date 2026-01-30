@@ -243,6 +243,7 @@ button.secondary {
 .code-block.wrap code {
   overflow-wrap: anywhere;
   word-break: break-word;
+  word-spacing: 0.02em;
 }
 
 .hint {
