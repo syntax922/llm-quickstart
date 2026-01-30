@@ -240,6 +240,11 @@ button.secondary {
   white-space: pre-wrap;
 }
 
+.code-block.wrap code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .hint {
   color: var(--muted);
   font-size: 0.95rem;
