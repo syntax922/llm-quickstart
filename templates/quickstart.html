@@ -33,6 +33,7 @@
         <a href="#openai">OpenAI SDK (Python)</a>
         <a href="#bearer">Bearer token auth</a>
         <a href="#troubleshooting">Troubleshooting</a>
+        <a href="#signout">Sign out</a>
       </nav>
 
       <main class="content">
@@ -220,6 +221,16 @@ curl -N -H "Authorization: Bearer $TOKEN" \
         <li><strong>Model not found:</strong> Run <code>/v1/models</code> and paste a valid model ID.</li>
         <li><strong>Streaming stalls:</strong> Verify <code>stream=true</code> and that your client supports SSE.</li>
       </ul>
+        </section>
+
+        <section class="card" id="signout">
+      <h2>Sign out</h2>
+      <p>
+        Signing out revokes the <code>{{.CookieName}}</code> session cookie stored in your browser. Use this if you
+        shared a machine or want to invalidate your current session.
+      </p>
+      <a class="button-link" href="{{.BaseURL}}/oauth2/sign_out">Sign out of the gateway</a>
+      <p class="hint">You will be redirected back to the sign-in flow if you visit the page again.</p>
         </section>
       </main>
     </div>

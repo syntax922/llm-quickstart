@@ -123,6 +123,24 @@ h1 {
   background: var(--card);
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  color: var(--primary-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: #eef2ff;
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--border);
