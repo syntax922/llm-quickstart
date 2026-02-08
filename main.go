@@ -101,6 +101,12 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 func buildPageData(r *http.Request) pageData {
 	cookieValue := ""
 	currentCookieName := cookieName
+	
+	// Debug logging
+	log.Printf("Received %d cookies", len(r.Cookies()))
+	for _, c := range r.Cookies() {
+		log.Printf("Cookie: %s = %s", c.Name, "REDACTED")
+	}
 
 	// Try to find an efficient Authentik cookie if the default one isn't present
 	// or if we want to prioritize Authentik.
