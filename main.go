@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	baseURL       = "https://ai.sras623.com"
+	baseURL       = "https://ai.rebelscum.network"
 	cookieName    = "_oauth2_proxy"
-	oauthAudience = "461475759178-sbdrb9og4193f629cq44n9u3iadqtnnj.apps.googleusercontent.com"
+	// TODO: Verify this Client ID with Authentik configuration
+	oauthAudience = "ai.rebelscum.network"
 )
 
 //go:embed templates/quickstart.html
@@ -113,7 +114,7 @@ func buildPageData(r *http.Request) pageData {
 	if data.CookiePresent {
 		data.CookieJarSnippet = fmt.Sprintf(
 			"# Netscape HTTP Cookie File\n%s\tFALSE\t/\tTRUE\t0\t%s\t%s",
-			"ai.sras623.com",
+			"ai.rebelscum.network",
 			cookieName,
 			cookieValue,
 		)
