@@ -217,7 +217,7 @@ curl -N -H "Authorization: Bearer $TOKEN" \
       <h2>Troubleshooting</h2>
       <ul>
         <li><strong>401/403:</strong> Your account is not on the allowlist or your cookie has expired. Re-authenticate.</li>
-        <li><strong>302 redirect:</strong> You are not logged in. Visit <code>{{.BaseURL}}/oauth2/sign_in</code>.</li>
+        <li><strong>302 redirect:</strong> You are not logged in. Refresh the page to trigger the OAuth flow.</li>
         <li><strong>Model not found:</strong> Run <code>/v1/models</code> and paste a valid model ID.</li>
         <li><strong>Streaming stalls:</strong> Verify <code>stream=true</code> and that your client supports SSE.</li>
       </ul>
