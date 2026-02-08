@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -99,15 +100,32 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 
 func buildPageData(r *http.Request) pageData {
 	cookieValue := ""
-	if cookie, err := r.Cookie(cookieName); err == nil {
-		cookieValue = cookie.Value
+	currentCookieName := cookieName
+
+	// Try to find an efficient Authentik cookie if the default one isn't present
+	// or if we want to prioritize Authentik.
+	found := false
+	for _, cookie := range r.Cookies() {
+		if strings.HasPrefix(cookie.Name, "authentik_proxy") {
+			currentCookieName = cookie.Name
+			cookieValue = cookie.Value
+			found = true
+			break
+		}
+	}
+
+	// Fallback to strict name check if not found via prefix
+	if !found {
+		if cookie, err := r.Cookie(cookieName); err == nil {
+			cookieValue = cookie.Value
+		}
 	}
 
 	data := pageData{
 		BaseURL:       baseURL,
 		CookieValue:   cookieValue,
 		CookiePresent: cookieValue != "",
-		CookieName:    cookieName,
+		CookieName:    currentCookieName,
 		OauthAudience: oauthAudience,
 	}
 
@@ -115,7 +133,7 @@ func buildPageData(r *http.Request) pageData {
 		data.CookieJarSnippet = fmt.Sprintf(
 			"# Netscape HTTP Cookie File\n%s\tFALSE\t/\tTRUE\t0\t%s\t%s",
 			"ai.rebelscum.network",
-			cookieName,
+			currentCookieName,
 			cookieValue,
 		)
 	} else {
