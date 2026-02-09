@@ -53,6 +53,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/quickstart/static/", noCache(http.StripPrefix("/quickstart/static/", http.FileServer(http.FS(assetsSub)))))
 	mux.Handle("/quickstart/api/session", noCache(http.HandlerFunc(handleSession)))
+	mux.Handle("/signout", noCache(http.HandlerFunc(handleSignOut)))
 	mux.Handle("/quickstart", noCache(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleQuickstart(w, r, tmpl)
 	})))
@@ -96,6 +97,26 @@ func handleSession(w http.ResponseWriter, r *http.Request) {
 	if err := encoder.Encode(response); err != nil {
 		http.Error(w, "Failed to render session", http.StatusInternalServerError)
 	}
+}
+
+func handleSignOut(w http.ResponseWriter, r *http.Request) {
+	// iterate all cookies and delete any relevant ones
+	for _, cookie := range r.Cookies() {
+		if strings.HasPrefix(cookie.Name, "authentik_proxy") || cookie.Name == cookieName {
+			// Clear the cookie
+			http.SetCookie(w, &http.Cookie{
+				Name:   cookie.Name,
+				Value:  "",
+				Path:   "/",
+				Domain: "ai.rebelscum.network",
+				MaxAge: -1,
+			})
+		}
+	}
+
+	// Redirect to the Authentik OIDC end-session endpoint
+	// This ensures the server-side session is also terminated
+	http.Redirect(w, r, "https://auth.rebelscum.network/application/o/llm-gateway/end-session/", http.StatusFound)
 }
 
 func buildPageData(r *http.Request) pageData {
