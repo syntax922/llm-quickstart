@@ -276,6 +276,26 @@ curl -N -H "Authorization: Bearer $TOKEN" \
         <li><strong>"No models loaded":</strong> Check that your token has <code>ak_proxy</code> scope and you're on the allowlist.</li>
         <li><strong>Token expired:</strong> Re-run the curl command from Step 2 to refresh your token.</li>
       </ul>
+
+      <h3>VS Code Inference Parameters Workaround</h3>
+      <p>
+        <strong>Problem:</strong> VS Code Copilot Chat hardcodes inference parameters (<code>temperature=0.1, top_p=1</code>) which causes
+        <strong>"performance degradation and endless repetitions"</strong> with Qwen3-Next models according to their documentation.
+      </p>
+      <p>
+        <strong>Solution:</strong> A lightweight Python reverse proxy intercepts all requests and enforces Qwen3-recommended sampling parameters:
+      </p>
+      <table class="troubleshooting-list">
+        <tr><td><code>temperature</code></td><td>0.1 (greedy)</td><td><strong>≥0.6</strong></td><td>Prevents repetitive outputs</td></tr>
+        <tr><td><code>top_p</code></td><td>1.0 (unconstrained)</td><td><strong>≤0.8</strong></td><td>Maintains response quality</td></tr>
+        <tr><td><code>top_k</code></td><td>(not sent)</td><td><strong>20</strong></td><td>Limits token selection</td></tr>
+        <tr><td><code>presence_penalty</code></td><td>(not sent)</td><td><strong>1.0</strong></td><td>Reduces repetitions</td></tr>
+      </table>
+      <p>The proxy runs on IG-88 and automatically clamps parameters before forwarding to LM Studio.</p>
+      <div class="callout note">
+        <strong>How it works:</strong> VS Code → :11434 (Caddy) → :11435 (param-proxy) → :1234 (LM Studio)
+      </div>
+      <p>The proxy is deployed as a system LaunchDaemon and requires no client-side configuration.</p>
         </section>
 
         <section class="card" id="troubleshooting">
