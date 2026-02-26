@@ -13,7 +13,7 @@
         <p class="eyebrow">LM Studio Gateway</p>
         <h1>Quickstart</h1>
         <p class="subtitle">
-          Authenticate with Google OAuth, copy your session cookie, and start calling the LM Studio REST API in minutes.
+          Authenticate with OAuth2, configure VS Code Copilot Chat, and start calling the LM Studio REST API in minutes.
         </p>
       </div>
       <a class="docs-link" href="https://lmstudio.ai/docs/developer/rest" target="_blank" rel="noreferrer">
@@ -32,6 +32,7 @@
         <a href="#stream">Streaming chat (SSE)</a>
         <a href="#openai">OpenAI SDK (Python)</a>
         <a href="#bearer">Bearer token auth</a>
+        <a href="#vscode-copilot">VS Code Copilot Chat</a>
         <a href="#troubleshooting">Troubleshooting</a>
         <a href="#signout">Sign out</a>
       </nav>
@@ -211,6 +212,70 @@ curl -N -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}" \
   "$BASE_URL/v1/chat/completions"</code></pre>
+        </section>
+
+        <section class="card" id="vscode-copilot">
+      <h2>VS Code Copilot Chat Configuration</h2>
+      <p>
+        To use VS Code Copilot Chat with this gateway, you need an OAuth2 access token obtained via the
+        <code>client_credentials</code> grant. This is different from a simple API key.
+      </p>
+      
+      <h3>Step 1: Get Your Authentik Credentials</h3>
+      <ol>
+        <li>Log in to Authentik at <a href="https://auth.rebelscum.network">auth.rebelscum.network</a></li>
+        <li>Navigate to <strong>User Settings</strong> → <strong>Tokens &amp; App Passwords</strong></li>
+        <li>Create a new <strong>App Password</strong> (NOT an API token):
+          <ul>
+            <li>Intent: <strong>App Password</strong></li>
+            <li>Expiration: Choose appropriate duration (or leave blank for non-expiring)</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3>Step 2: Exchange for OAuth2 Access Token</h3>
+      <p>Use the following command to exchange your App Password for an OAuth2 access token:</p>
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-button" data-copy-target="vscode-token">Copy</button>
+      </div>
+      <pre class="code-block"><code id="vscode-token">curl -s -X POST \
+  --data-urlencode "grant_type=client_credentials" \
+  --data-urlencode "client_id=xvhEjbgXSEAYiHdXdRvBGUPVpyDUlXnaRdwZH10g" \
+  --data-urlencode "username=&lt;your-authentik-username&gt;" \
+  --data-urlencode "password=&lt;your-app-password&gt;" \
+  https://auth.rebelscum.network/application/o/token/ | python3 -m json.tool</code></pre>
+      <p>Replace <code>&lt;your-authentik-username&gt;</code> with your Authentik username and <code>&lt;your-app-password&gt;</code> with the App Password from Step 1.</p>
+      <div class="callout note">
+        <strong>Note:</strong> The response will include an <code>access_token</code> that you'll use in VS Code.</div>
+
+      <h3>Step 3: Configure VS Code</h3>
+      <ol>
+        <li>Open VS Code (Insiders recommended)</li>
+        <li>Go to <strong>File</strong> → <strong>Preferences</strong> → <strong>Settings</strong></li>
+        <li>Click the <code>{}</code> icon in the top-right to open <code>settings.json</code></li>
+        <li>Add the following configuration:</li>
+      </ol>
+      <div class="code-header">
+        <span>json</span>
+        <button class="copy-button" data-copy-target="vscode-settings">Copy</button>
+      </div>
+      <pre class="code-block"><code id="vscode-settings">{
+  "github.copilot.languageModels": {
+    "lm-studio-ig88": {
+      "url": "https://ai.rebelscum.network/v1",
+      "apiKey": "&lt;access_token-from-step-2&gt;"
+    }
+  }
+}</code></pre>
+      <p>Replace <code>&lt;access_token-from-step-2&gt;</code> with the <code>access_token</code> value from Step 2.</p>
+
+      <h3>Troubleshooting</h3>
+      <ul class="troubleshooting-list">
+        <li><strong>401/403 error:</strong> Ensure you're using the OAuth2 <code>access_token</code>, NOT an Authentik API token.</li>
+        <li><strong>"No models loaded":</strong> Check that your token has <code>ak_proxy</code> scope and you're on the allowlist.</li>
+        <li><strong>Token expired:</strong> Re-run the curl command from Step 2 to refresh your token.</li>
+      </ul>
         </section>
 
         <section class="card" id="troubleshooting">
