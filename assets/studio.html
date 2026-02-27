@@ -347,6 +347,7 @@
       align-items: center;
       gap: 0.35rem;
       white-space: nowrap;
+      position: relative;
     }
     #tool-toggle.active {
       border-color: var(--accent-color);
@@ -365,6 +366,64 @@
       align-items: center;
       justify-content: center;
       font-weight: 600;
+    }
+    /* Tool dropdown menu */
+    #tool-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      background-color: var(--input-background);
+      border: 1px solid #444;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      min-width: 260px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+    }
+    #tool-dropdown.show {
+      display: block;
+    }
+    .tool-item {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .tool-item:last-child { border-bottom: none; }
+    .tool-item:hover { background-color: rgba(187,134,252,0.08); }
+    .tool-checkbox {
+      width: 18px;
+      height: 18px;
+      margin-top: 0.2rem;
+      accent-color: var(--accent-color);
+      cursor: pointer;
+    }
+    .tool-info {
+      flex-grow: 1;
+    }
+    .tool-name {
+      font-weight: 600;
+      color: var(--text-color);
+      display: block;
+    }
+    .tool-desc {
+      font-size: 0.75rem;
+      color: #aaa;
+      display: block;
+      margin-top: 0.15rem;
+    }
+    .tool-item.active .tool-name {
+      color: var(--accent-color);
+    }
+    #tools-empty {
+      padding: 1rem;
+      text-align: center;
+      color: #777;
     }
     /* Tool execution status messages */
     .tool-status-message {
@@ -444,7 +503,13 @@
       <select id="model-select" disabled>
         <option value="">Select a model</option>
       </select>
-      <button id="tool-toggle" title="Enable tool use (web search, page fetch)"><i class="fas fa-wrench"></i> Tools</button>
+      <div id="tool-container" style="position:relative;">
+        <button id="tool-toggle" title="Select tools to enable"><i class="fas fa-wrench"></i> Tools</button>
+        <div id="tool-dropdown">
+          <ul id="tools-list"></ul>
+          <div id="tools-empty">No tools available</div>
+        </div>
+      </div>
       <button id="connect-button"><i class="fas fa-plug"></i> Connect</button>
     </div>
     <div id="connection-status">Disconnected</div>
@@ -500,6 +565,10 @@
     let toolsEnabled = false;
     let availableTools = [];  // OpenAI tool definitions from backend
     const toolToggle = document.getElementById('tool-toggle');
+    const toolContainer = document.getElementById('tool-container');
+    const toolDropdown = document.getElementById('tool-dropdown');
+    const toolsListEl = document.getElementById('tools-list');
+    const toolsEmptyEl = document.getElementById('tools-empty');
     const MAX_TOOL_ROUNDS = 5; // Safety limit on tool-call loops
     
     // Chat management: each chat has an id, name, and messages array.
@@ -697,18 +766,98 @@
       currentModel = e.target.value;
     });
 
-    // Tool toggle handler.
-    toolToggle.addEventListener('click', () => {
-      toolsEnabled = !toolsEnabled;
-      toolToggle.classList.toggle('active', toolsEnabled);
-      if (toolsEnabled && availableTools.length > 0) {
-        toolToggle.innerHTML = `<i class="fas fa-wrench"></i> Tools <span class="tool-count">${availableTools.length}</span>`;
-      } else if (toolsEnabled) {
-        toolToggle.innerHTML = '<i class="fas fa-wrench"></i> Tools';
+    // Tool toggle handler (dropdown).
+    toolToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = toolDropdown.classList.contains('show');
+      if (isVisible) {
+        hideToolDropdown();
       } else {
-        toolToggle.innerHTML = '<i class="fas fa-wrench"></i> Tools';
+        showToolDropdown();
       }
     });
+
+    // Hide dropdown when clicking outside.
+    document.addEventListener('click', (e) => {
+      if (!toolContainer.contains(e.target)) {
+        hideToolDropdown();
+      }
+    });
+
+    function showToolDropdown() {
+      renderToolsList();
+      toolDropdown.classList.add('show');
+    }
+
+    function hideToolDropdown() {
+      toolDropdown.classList.remove('show');
+    }
+
+    // Render the tools list with checkboxes.
+    function renderToolsList() {
+      if (availableTools.length === 0) {
+        toolsEmptyEl.style.display = 'block';
+        toolsListEl.innerHTML = '';
+        return;
+      }
+      toolsEmptyEl.style.display = 'none';
+      toolsListEl.innerHTML = '';
+      
+      availableTools.forEach((tool, idx) => {
+        const li = document.createElement('li');
+        li.className = 'tool-item';
+        
+        // Create checkbox
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'tool-checkbox';
+        checkbox.id = `tool-${idx}`;
+        checkbox.checked = toolsEnabled;
+        
+        // Create label with tool info
+        const label = document.createElement('label');
+        label.htmlFor = `tool-${idx}`;
+        label.className = 'tool-info';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'tool-name';
+        nameSpan.textContent = tool.function.name;
+        
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tool-desc';
+        descSpan.textContent = tool.function.description;
+        
+        label.appendChild(nameSpan);
+        label.appendChild(descSpan);
+        
+        // Handle checkbox change
+        checkbox.addEventListener('change', () => {
+          const enabledTools = availableTools.filter((_, i) => 
+            document.getElementById(`tool-${i}`).checked
+          );
+          
+          if (enabledTools.length === 0) {
+            toolsEnabled = false;
+            toolToggle.classList.remove('active');
+            toolToggle.innerHTML = '<i class="fas fa-wrench"></i> Tools';
+          } else if (enabledTools.length === availableTools.length) {
+            toolsEnabled = true;
+            toolToggle.classList.add('active');
+            toolToggle.innerHTML = `<i class="fas fa-wrench"></i> Tools <span class="tool-count">${enabledTools.length}</span>`;
+          } else {
+            toolsEnabled = true;
+            toolToggle.classList.add('active');
+            toolToggle.innerHTML = `<i class="fas fa-wrench"></i> Tools <span class="tool-count">${enabledTools.length}/${availableTools.length}</span>`;
+          }
+          
+          console.log(`[tools] enabled: ${enabledTools.map(t => t.function.name).join(', ')}`);
+        });
+        
+        li.appendChild(checkbox);
+        li.appendChild(label);
+        toolsListEl.appendChild(li);
+      });
+    }
 
     // Fetch available tools from the backend.
     async function fetchAvailableTools() {
@@ -718,6 +867,10 @@
         const data = await resp.json();
         availableTools = data.tools || [];
         console.log(`[tools] loaded ${availableTools.length} tool definitions`);
+        
+        // Render the dropdown immediately
+        renderToolsList();
+        
         if (availableTools.length > 0) {
           toolToggle.disabled = false;
           // Auto-enable tools on first connect
@@ -728,6 +881,7 @@
       } catch (err) {
         console.warn('[tools] failed to load tools:', err);
         availableTools = [];
+        renderToolsList();
       }
     }
 
@@ -862,8 +1016,14 @@
         stream: false
       };
       if (includeTools && toolsEnabled && availableTools.length > 0) {
-        payload.tools = availableTools;
-        payload.tool_choice = 'auto';
+        // Build tools array from checkboxes
+        const enabledTools = availableTools.filter((_, i) => 
+          document.getElementById(`tool-${i}`)?.checked
+        );
+        if (enabledTools.length > 0) {
+          payload.tools = enabledTools;
+          payload.tool_choice = 'auto';
+        }
       }
 
       const response = await fetch(`${serverUrl}/v1/chat/completions`, {
