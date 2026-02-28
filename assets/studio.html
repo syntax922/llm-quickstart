@@ -1123,8 +1123,12 @@
                     if (thinkingEl) thinkingEl.remove();
                     firstTokenReceived = true;
                   }
+                  
                   accumulatedText += delta.content;
+                  
+                  // Render content as it streams
                   contentDiv.innerHTML = marked.parse(accumulatedText);
+                  
                   messageElement.querySelectorAll('pre code').forEach(block => {
                     hljs.highlightElement(block);
                   });
