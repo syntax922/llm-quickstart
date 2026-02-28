@@ -592,6 +592,8 @@
     
     let isConnected = false;
     let currentModel = '';
+    // Persist model selection across sessions
+    const savedModel = localStorage.getItem("llm-quickstart-model");
     let pendingImage = null;
 
     // ── Tool state ──────────────────────────────────────────
@@ -797,6 +799,8 @@
     // Model selection change.
     modelSelect.addEventListener('change', async (e) => {
       currentModel = e.target.value;
+      // Re-fetch tools when model changes to ensure correct tool availability
+      await fetchAvailableTools();
     });
 
     // Tool toggle handler (dropdown).
@@ -906,10 +910,12 @@
         
         if (availableTools.length > 0) {
           toolToggle.disabled = false;
-          // Auto-enable tools on first connect
-          toolsEnabled = true;
-          toolToggle.classList.add('active');
-          toolToggle.innerHTML = `<i class="fas fa-wrench"></i> Tools <span class="tool-count">${availableTools.length}</span>`;
+          // Auto-enable tools when available (not just on first connect)
+          if (!toolsEnabled) {
+            toolsEnabled = true;
+            toolToggle.classList.add('active');
+            toolToggle.innerHTML = `<i class="fas fa-wrench"></i> Tools <span class="tool-count">${availableTools.length}</span>`;
+          }
         }
       } catch (err) {
         console.warn('[tools] failed to load tools:', err);
@@ -947,7 +953,17 @@
             modelSelect.appendChild(option);
           });
           modelSelect.disabled = false;
-          currentModel = modelSelect.value;
+          // Prefer tool-enabled model if available
+          const preferredModel = "qwen3.5-35b-a3b";
+          const hasPreferredModel = data.data.some(m => m.id === preferredModel);
+          if (savedModel && data.data.some(m => m.id === savedModel)) {
+            currentModel = savedModel;
+          } else if (hasPreferredModel) {
+            currentModel = preferredModel;
+            localStorage.setItem("llm-quickstart-model", preferredModel);
+          } else {
+            currentModel = modelSelect.value;
+          }
           isConnected = true;
           updateConnectionStatus('Connected', true);
           userInput.disabled = false;
