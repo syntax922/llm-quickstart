@@ -610,6 +610,13 @@
     let chats = [];
     let currentChat = null;
     
+    // Helper: Strip <think>...</think> blocks from model output before display.
+    // Qwen3 thinking models emit these for internal reasoning; they should not
+    // be shown in the chat UI.
+    function stripThinkBlocks(text) {
+      return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    }
+
     // Helper: Attach copy code buttons to code blocks
     function attachCopyButtons(container) {
       container.querySelectorAll('pre').forEach(pre => {
@@ -964,6 +971,7 @@
           } else {
             currentModel = modelSelect.value;
           }
+          modelSelect.value = currentModel;
           isConnected = true;
           updateConnectionStatus('Connected', true);
           userInput.disabled = false;
@@ -1306,9 +1314,10 @@
               looping = false;
 
               // If there's content, display it directly (no need to stream).
-              if (msg.content) {
+              const displayContent = stripThinkBlocks(msg.content || '');
+              if (displayContent) {
                 chatContainer.appendChild(assistantMessageElement);
-                assistantContentDiv.innerHTML = marked.parse(msg.content);
+                assistantContentDiv.innerHTML = marked.parse(displayContent);
                 assistantMessageElement.querySelectorAll('pre code').forEach(block => {
                   hljs.highlightElement(block);
                 });
@@ -1321,9 +1330,9 @@
                 const endTime = performance.now();
                 const timeElapsed = ((endTime - startTime) / 1000).toFixed(2);
                 if (currentChat) {
-                  currentChat.messages.push({ content: msg.content, isUser: false, isImage: false });
+                  currentChat.messages.push({ content: displayContent, isUser: false, isImage: false });
                   if (currentChat.name.startsWith('Conversation')) {
-                    const snippet = msg.content.split(' ').slice(0, 7).join(' ');
+                    const snippet = displayContent.split(' ').slice(0, 7).join(' ');
                     currentChat.name = snippet ? `Conversation: ${snippet}...` : currentChat.name;
                     updateChatList();
                   }
