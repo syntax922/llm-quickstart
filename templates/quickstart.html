@@ -31,7 +31,7 @@
         <a href="#chat">Non-stream chat</a>
         <a href="#stream">Streaming chat (SSE)</a>
         <a href="#openai">OpenAI SDK (Python)</a>
-        <a href="#bearer">Bearer token auth</a>
+        <a href="#bearer">M2M: CF Access service tokens</a>
         <a href="#vscode-copilot">VS Code Copilot Chat</a>
         <a href="#troubleshooting">Troubleshooting</a>
         <a href="#signout">Sign out</a>
@@ -41,12 +41,14 @@
         <section class="card" id="overview">
       <h2>Overview</h2>
       <p>
-        This gateway is protected by OAuth. You must be on the allowlist to access the API. The session cookie grants
-        access to the gateway — treat it like a password and never share it publicly.
+        This gateway is protected by <strong>Cloudflare Access</strong>. Browsers authenticate via an OIDC flow
+        with <a href="https://auth.rebelscum.network">Authentik</a> — you must be on the allowlist. The resulting
+        session cookie grants access to the API. Headless agents use a CF Access service token instead
+        (see <a href="#bearer">M2M: CF Access service tokens</a>).
       </p>
       <div class="callout warning">
-        <strong>Security:</strong> The session cookie enables access to your account. Store it securely and rotate if
-        you suspect exposure.
+        <strong>Security:</strong> The session cookie and any service token credentials enable access to your account.
+        Store them securely and rotate if you suspect exposure.
       </div>
         </section>
 
@@ -180,35 +182,37 @@ print(response.choices[0].message.content)</code></pre>
         </section>
 
         <section class="card" id="bearer">
-      <h2>Use a Google identity token (Bearer)</h2>
+      <h2>Machine-to-machine access (CF Access service tokens)</h2>
       <p>
-        OAuth2-proxy can accept a Google identity token. Use the same audience as the OAuth client ID and pass the
-        token as a Bearer header.
+        The gateway is protected by <strong>Cloudflare Access</strong>. Browsers authenticate via an OIDC flow
+        with <a href="https://auth.rebelscum.network">Authentik</a> and receive a session cookie automatically.
+        Headless clients (scripts, CI, agents) must present a Cloudflare Access <strong>service token</strong>
+        instead — two headers that bypass the browser OIDC dance.
       </p>
-      <div class="code-header">
-        <span>bash</span>
-        <button class="copy-button" data-copy-target="gcloud-login">Copy</button>
+      <div class="callout note">
+        <strong>Service tokens</strong> are issued in the Cloudflare Zero Trust dashboard under
+        <em>Access → Service Auth → Service Tokens</em>. Each token has a Client ID and a Client Secret.
       </div>
-      <pre class="code-block"><code id="gcloud-login">gcloud auth login
-
-gcloud auth print-identity-token \
-  --audiences="{{.OauthAudience}}" \
-  --include-email</code></pre>
       <div class="code-header">
-        <span>bash</span>
-        <button class="copy-button" data-copy-target="gcloud-bearer">Copy</button>
+        <span>bash — models endpoint</span>
+        <button class="copy-button" data-copy-target="cf-bearer-models">Copy</button>
       </div>
-      <pre class="code-block"><code id="gcloud-bearer">TOKEN=$(gcloud auth print-identity-token --audiences="{{.OauthAudience}}")
+      <pre class="code-block"><code id="cf-bearer-models">CF_CLIENT_ID="&lt;CF-Access-Client-Id&gt;"
+CF_CLIENT_SECRET="&lt;CF-Access-Client-Secret&gt;"
 
-curl -H "Authorization: Bearer $TOKEN" \
-  "$BASE_URL/v1/models"</code></pre>
+curl -H "CF-Access-Client-Id: $CF_CLIENT_ID" \
+     -H "CF-Access-Client-Secret: $CF_CLIENT_SECRET" \
+     "$BASE_URL/v1/models"</code></pre>
       <div class="code-header">
-        <span>bash</span>
-        <button class="copy-button" data-copy-target="gcloud-stream">Copy</button>
+        <span>bash — streaming chat</span>
+        <button class="copy-button" data-copy-target="cf-bearer-stream">Copy</button>
       </div>
-      <pre class="code-block"><code id="gcloud-stream">TOKEN=$(gcloud auth print-identity-token --audiences="{{.OauthAudience}}")
+      <pre class="code-block"><code id="cf-bearer-stream">CF_CLIENT_ID="&lt;CF-Access-Client-Id&gt;"
+CF_CLIENT_SECRET="&lt;CF-Access-Client-Secret&gt;"
 
-curl -N -H "Authorization: Bearer $TOKEN" \
+curl -N \
+  -H "CF-Access-Client-Id: $CF_CLIENT_ID" \
+  -H "CF-Access-Client-Secret: $CF_CLIENT_SECRET" \
   -H "Content-Type: application/json" \
   -d "{\"model\":\"$MODEL_ID\",\"stream\":true,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}" \
   "$BASE_URL/v1/chat/completions"</code></pre>
@@ -217,44 +221,33 @@ curl -N -H "Authorization: Bearer $TOKEN" \
         <section class="card" id="vscode-copilot">
       <h2>VS Code Copilot Chat Configuration</h2>
       <p>
-        To use VS Code Copilot Chat with this gateway, you need an OAuth2 access token obtained via the
-        <code>client_credentials</code> grant. This is different from a simple API key.
+        The gateway is protected by <strong>Cloudflare Access</strong>. The correct credential type depends on how
+        you're connecting:
       </p>
-      
-      <h3>Step 1: Get Your Authentik Credentials</h3>
+      <ul>
+        <li><strong>Browser / interactive:</strong> Sign in via the OIDC flow at
+          <a href="https://auth.rebelscum.network">auth.rebelscum.network</a> — CF Access handles it automatically
+          and sets a session cookie.</li>
+        <li><strong>VS Code / headless agents:</strong> Use a <strong>Cloudflare Access service token</strong>
+          (<code>CF-Access-Client-Id</code> + <code>CF-Access-Client-Secret</code> headers). See the
+          <a href="#bearer">Machine-to-machine access</a> section above.</li>
+      </ul>
+
+      <h3>Step 1: Obtain a CF Access Service Token</h3>
       <ol>
-        <li>Log in to Authentik at <a href="https://auth.rebelscum.network">auth.rebelscum.network</a></li>
-        <li>Navigate to <strong>User Settings</strong> → <strong>Tokens &amp; App Passwords</strong></li>
-        <li>Create a new <strong>App Password</strong> (NOT an API token):
-          <ul>
-            <li>Intent: <strong>App Password</strong></li>
-            <li>Expiration: Choose appropriate duration (or leave blank for non-expiring)</li>
-          </ul>
-        </li>
+        <li>Open the <a href="https://one.dash.cloudflare.com/" target="_blank" rel="noreferrer">Cloudflare Zero Trust dashboard</a>.</li>
+        <li>Navigate to <strong>Access</strong> → <strong>Service Auth</strong> → <strong>Service Tokens</strong>.</li>
+        <li>Create a new token for the <code>ai.rebelscum.network</code> application. Copy the
+          <strong>Client ID</strong> and <strong>Client Secret</strong> — the secret is only shown once.</li>
       </ol>
 
-      <h3>Step 2: Exchange for OAuth2 Access Token</h3>
-      <p>Use the following command to exchange your App Password for an OAuth2 access token:</p>
-      <div class="code-header">
-        <span>bash</span>
-        <button class="copy-button" data-copy-target="vscode-token">Copy</button>
-      </div>
-      <pre class="code-block"><code id="vscode-token">curl -s -X POST \
-  --data-urlencode "grant_type=client_credentials" \
-  --data-urlencode "client_id=xvhEjbgXSEAYiHdXdRvBGUPVpyDUlXnaRdwZH10g" \
-  --data-urlencode "username=&lt;your-authentik-username&gt;" \
-  --data-urlencode "password=&lt;your-app-password&gt;" \
-  https://auth.rebelscum.network/application/o/token/ | python3 -m json.tool</code></pre>
-      <p>Replace <code>&lt;your-authentik-username&gt;</code> with your Authentik username and <code>&lt;your-app-password&gt;</code> with the App Password from Step 1.</p>
-      <div class="callout note">
-        <strong>Note:</strong> The response will include an <code>access_token</code> that you'll use in VS Code.</div>
-
-      <h3>Step 3: Configure VS Code</h3>
+      <h3>Step 2: Configure VS Code</h3>
       <ol>
-        <li>Open VS Code (Insiders recommended)</li>
-        <li>Go to <strong>File</strong> → <strong>Preferences</strong> → <strong>Settings</strong></li>
-        <li>Click the <code>{}</code> icon in the top-right to open <code>settings.json</code></li>
-        <li>Add the following configuration:</li>
+        <li>Open VS Code.</li>
+        <li>Go to <strong>File</strong> → <strong>Preferences</strong> → <strong>Settings</strong>.</li>
+        <li>Click the <code>{}</code> icon in the top-right to open <code>settings.json</code>.</li>
+        <li>Add the following configuration, using the Client Secret as the <code>apiKey</code> and the Client ID
+          as a custom header:</li>
       </ol>
       <div class="code-header">
         <span>json</span>
@@ -264,17 +257,25 @@ curl -N -H "Authorization: Bearer $TOKEN" \
   "github.copilot.languageModels": {
     "lm-studio-ig88": {
       "url": "https://ai.rebelscum.network/v1",
-      "apiKey": "&lt;access_token-from-step-2&gt;"
+      "apiKey": "&lt;CF-Access-Client-Secret&gt;",
+      "headers": {
+        "CF-Access-Client-Id": "&lt;CF-Access-Client-Id&gt;",
+        "CF-Access-Client-Secret": "&lt;CF-Access-Client-Secret&gt;"
+      }
     }
   }
 }</code></pre>
-      <p>Replace <code>&lt;access_token-from-step-2&gt;</code> with the <code>access_token</code> value from Step 2.</p>
+      <p>Replace <code>&lt;CF-Access-Client-Id&gt;</code> and <code>&lt;CF-Access-Client-Secret&gt;</code> with the values from Step 1.</p>
 
       <h3>Troubleshooting</h3>
       <ul class="troubleshooting-list">
-        <li><strong>401/403 error:</strong> Ensure you're using the OAuth2 <code>access_token</code>, NOT an Authentik API token.</li>
-        <li><strong>"No models loaded":</strong> Check that your token has <code>ak_proxy</code> scope and you're on the allowlist.</li>
-        <li><strong>Token expired:</strong> Re-run the curl command from Step 2 to refresh your token.</li>
+        <li><strong>403 / "Access denied":</strong> The service token does not have access to the
+          <code>ai.rebelscum.network</code> Access policy. Verify the token was created for this application in
+          the Cloudflare Zero Trust dashboard.</li>
+        <li><strong>"No models loaded":</strong> The CF Access auth succeeded but the backend is unreachable.
+          Check that the gateway pod is running and the model is loaded on IG-88.</li>
+        <li><strong>Token expired:</strong> CF Access service tokens have a configurable expiry. Rotate via the
+          Cloudflare Zero Trust dashboard and update your VS Code settings.</li>
       </ul>
 
       <h3>VS Code Inference Parameters Workaround</h3>
