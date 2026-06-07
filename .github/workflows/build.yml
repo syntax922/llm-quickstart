@@ -37,5 +37,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/syntax922/llm-quickstart:latest
-            ghcr.io/syntax922/llm-quickstart:${{ github.sha }}
+            ghcr.io/droidkluster/llm-quickstart:latest
+            ghcr.io/droidkluster/llm-quickstart:${{ github.sha }}
